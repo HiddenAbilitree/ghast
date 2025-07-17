@@ -23,12 +23,8 @@ import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/button';
 import Csv from '@/icons/csv.svg';
+import { formatNumericalDuration, formatReallyLongTime } from '@/utils';
 import { type Player, type Uber } from '@/utils/types';
-import {
-  formatNumericalDuration,
-  formatReallyLongTime,
-  divHtml as html,
-} from '@/utils/utils';
 
 const getData = async (id: string | undefined): Promise<Uber | undefined> => {
   if (!id) return undefined;
@@ -41,26 +37,28 @@ const getData = async (id: string | undefined): Promise<Uber | undefined> => {
 
 const teamColors = [`text-red-600`, `text-blue-600`];
 
-const nameCellRenderer = (params: ICellRendererParams<Player>) => html`
-  <span
-    class="${teamColors[
-      params.data!.stats.team - 1
-    ]} flex items-center gap-2 font-medium"
-  >
-    <img
-      alt="${params.value}'s Head"
-      class="aspect-square size-6"
-      src="https://nmsr.nickac.dev/face/${params.data!.uuid}?width=64"
-    />
-    ${params.value}
-  </span>
-`;
+const nameCellRenderer = (params: ICellRendererParams<Player>) => (
+  <div>
+    <span
+      class={`${teamColors[params.data!.stats.team - 1]} flex items-center gap-2 font-medium`}
+    >
+      <img
+        alt={`${params.value}'s Head`}
+        class='aspect-square size-6'
+        src={`https://nmsr.nickac.dev/face/${params.data!.uuid}?width=64`}
+      />
+      {`${params.value}`}
+    </span>
+  </div>
+);
 
-const teamCellRenderer = (params: ICellRendererParams<Player>) => html`
-  <span class="${teamColors[params.data!.stats.team - 1]}"
-    >${params.value}</span
-  >
-`;
+const teamCellRenderer = (params: ICellRendererParams<Player>) => (
+  <div>
+    <span class={`${teamColors[params.data!.stats.team - 1]}`}>
+      {params.value}
+    </span>
+  </div>
+);
 
 const Stats = (props: { data: Uber }) => {
   const [currentGrid, setCurrentGrid] = createSignal<GridApi<Player>>();
@@ -90,6 +88,7 @@ const Stats = (props: { data: Uber }) => {
           field: `stats.team`,
           filter: true,
           headerName: `Team`,
+          sort: `desc`,
           valueGetter: (p) => teamNames[p.data!.stats.team - 1],
         },
         {
@@ -143,17 +142,17 @@ const Stats = (props: { data: Uber }) => {
         initialWidth: 80,
       },
       domLayout: `autoHeight`,
+      getRowClass: (thething) => {
+        if (thething.node.rowIndex === thething.api.getDisplayedRowCount() - 1)
+          return `${thething.node.rowIndex} border-b`;
+      },
       rowData: props.data.players,
     });
 
     grid.addEventListener(`cellKeyDown`, (e) => {
       const keyboardEvent = e.event as KeyboardEvent;
-      if (
-        !(keyboardEvent.ctrlKey || keyboardEvent.metaKey) ||
-        keyboardEvent.code !== `KeyC`
-      )
+      if (!keyboardEvent.ctrlKey || keyboardEvent.key.toLowerCase() !== `c`)
         return;
-
       const ev = e as CellKeyDownEvent;
       toast(`Copied ${ev.value} to clipboard`);
 
@@ -204,7 +203,7 @@ const Stats = (props: { data: Uber }) => {
       </div>
       <hr class='text-gray-200' />
       <div class='flex-1'>
-        <div class='h-full' ref={theGrid!} />
+        <div class='ag-grid min-h-0' ref={theGrid!} />
       </div>
 
       <hr class='text-gray-200' />
